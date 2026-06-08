@@ -1,0 +1,13 @@
+# Supabase configuration managed in Git so the GitHub integration can keep
+# Supabase branch/project settings in sync with this repository.
+
+project_id = "standard-bank-inspection-system"
+
+[storage]
+enabled = true
+file_size_limit = "8MiB"
+
+[storage.buckets.inspection-images]
+public = true
+file_size_limit = "8MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
