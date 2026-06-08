@@ -27,13 +27,13 @@ export function deriveSupabaseUrlFromDatabaseUrl(databaseUrl?: string) {
 }
 
 function getSupabaseStorageConfig() {
-  const url = process.env.SUPABASE_URL?.replace(/\/$/, '') || deriveSupabaseUrlFromDatabaseUrl(process.env.DATABASE_URL);
+  const url = (process.env.SUPABASE_URL || process.env.SUPABASE_URI)?.replace(/\/$/, '') || deriveSupabaseUrlFromDatabaseUrl(process.env.DATABASE_URL);
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const bucket = process.env.SUPABASE_STORAGE_BUCKET || DEFAULT_STORAGE_BUCKET;
 
   if (!url) {
     throw new Error(
-      'Supabase Storage uploads require SUPABASE_URL or a recognizable Supabase DATABASE_URL. Expected DATABASE_URL host db.<project-ref>.supabase.co or a pooler username formatted as postgres.<project-ref>.'
+      'Supabase Storage uploads require SUPABASE_URL on the server.'
     );
   }
 

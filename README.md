@@ -22,39 +22,47 @@ BuildInspect Demo is a mobile-first building inspection management system design
 
 ## Environment variables
 
-Copy `.env.example` to `.env` for local development. For the minimal Vercel + Supabase setup, set only these variables:
+For the minimal Vercel + Supabase setup, set only these project variables:
 
 ```bash
-DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true"
+SUPABASE_URL="https://PROJECT_REF.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="replace-with-your-supabase-anon-key"
 SUPABASE_SERVICE_ROLE_KEY="replace-with-your-supabase-service-role-key"
 AUTH_SECRET="replace-with-a-long-random-secret"
 ```
 
-- `DATABASE_URL` is the only Prisma database variable required. `DIRECT_URL` is not required.
-- `SUPABASE_SERVICE_ROLE_KEY` is server-only and is used for Supabase Storage uploads and as a production auth-secret fallback when `AUTH_SECRET` / `NEXTAUTH_SECRET` are not set. Never expose it to the browser.
+- `SUPABASE_URL` is the Supabase project/API URL. The app also accepts `SUPABASE_URI` as an alias if that is the name already configured in Vercel.
+- `SUPABASE_SERVICE_ROLE_KEY` is server-only and is used for application database reads/writes through Supabase REST plus server-side Storage uploads. Never expose it to the browser.
 - `AUTH_SECRET` signs the app's HTTP-only login cookie in production. Generate a long random value for Vercel, for example with `openssl rand -base64 32`.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` is included for Supabase/Vercel compatibility. It is public by design and is **not** used by server-side image uploads.
 
 Optional overrides:
 
 ```bash
-SUPABASE_URL="https://PROJECT_REF.supabase.co"
 SUPABASE_STORAGE_BUCKET="inspection-images"
 NEXTAUTH_SECRET="replace-with-a-long-random-secret"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-`SUPABASE_URL` is optional because the app can derive `https://PROJECT_REF.supabase.co` from common Supabase `DATABASE_URL` formats, including direct hosts like `db.PROJECT_REF.supabase.co` and pooler URLs whose username is `postgres.PROJECT_REF`. The default storage bucket is `inspection-images`; set `SUPABASE_STORAGE_BUCKET` only if you use a different bucket name.
+`DATABASE_URL` is no longer required for the Vercel runtime. If you provide a PostgreSQL `DATABASE_URL` for local development, the app uses Prisma directly; otherwise it uses `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` at runtime.
+
+## Troubleshooting Vercel login setup
+
+If login fails after switching to the Supabase-only variable set, check these items:
+
+1. `SUPABASE_URL` must be the project URL, for example `https://PROJECT_REF.supabase.co`.
+2. `SUPABASE_SERVICE_ROLE_KEY` must be the service-role key, not the anon key.
+3. The Supabase migrations in `supabase/migrations/` must be applied to the project so the app tables exist.
+4. Redeploy Vercel after editing environment variables.
+
+The app creates the demo users and a starter inspection template automatically on first login when the tables are empty, so `npx prisma db seed` is not required for the Supabase-only Vercel setup.
 
 ## Local setup
 
 ```bash
 npm install
 cp .env.example .env
-# edit .env with your Supabase PostgreSQL and service-role settings
-npm run db:migrate
-npm run db:seed
+# edit .env with your Supabase project settings
 npm run dev
 ```
 
@@ -62,9 +70,9 @@ Open `http://localhost:3000` and sign in with one of the demo users.
 
 ## Database setup
 
-1. Create a PostgreSQL database locally, in Supabase, Neon, or another managed Postgres provider.
-2. Set `DATABASE_URL` in `.env`.
-3. Run:
+For Vercel, connect this repository to Supabase and apply the checked-in SQL migration in `supabase/migrations/`. At runtime, the app can read and write data through Supabase REST using only `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+
+For local Prisma development, you can optionally set `DATABASE_URL` and run:
 
 ```bash
 npm run db:migrate
@@ -75,7 +83,7 @@ The Prisma schema includes scalable models for users, templates, sections, check
 
 ## Seeded demo data
 
-The seed command creates:
+The optional Prisma seed command creates the full demo dataset. In the Supabase-only Vercel runtime, the first login creates the demo users and a starter template automatically:
 
 - Admin User: `admin@buildinspect.demo` / `password123`
 - Field Inspector: `inspector@buildinspect.demo` / `password123`
@@ -93,7 +101,7 @@ The upload route validates images server-side:
 
 Images are uploaded to Supabase Storage with `SUPABASE_SERVICE_ROLE_KEY`; server uploads do not use `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The storage bucket defaults to `inspection-images`, so `SUPABASE_STORAGE_BUCKET` is only needed when you want a different bucket.
 
-The app uses `SUPABASE_URL` when it is set. If it is not set, the app derives the project URL from `DATABASE_URL` for common Supabase direct database URLs (`db.PROJECT_REF.supabase.co`) and pooler URLs where the username is `postgres.PROJECT_REF`. If the URL cannot be determined, uploads return a server-side configuration error explaining that Supabase Storage needs `SUPABASE_URL` or a recognizable Supabase `DATABASE_URL`.
+The app uses `SUPABASE_URL` for Supabase Storage and also accepts `SUPABASE_URI` as an alias. If neither is set, uploads return a server-side configuration error explaining that Supabase Storage needs `SUPABASE_URL`.
 
 ## Deployment to Vercel
 
@@ -102,25 +110,20 @@ The app uses `SUPABASE_URL` when it is set. If it is not set, the app derives th
 3. Add the minimal Supabase/Vercel environment variables in Vercel Project Settings:
 
 ```bash
-DATABASE_URL
+SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 AUTH_SECRET
 ```
 
 4. Confirm that your Supabase Storage bucket exists. By default, the app uploads to `inspection-images`.
-5. Run the committed database migration during deployment or from a trusted admin machine:
+5. Apply the committed Supabase migration through the Supabase GitHub integration or Supabase CLI. The app seeds demo users automatically on first login.
 
-```bash
-npx prisma migrate deploy
-npx prisma db seed
-```
+A Supabase CLI migration is checked in at `supabase/migrations/20260608000000_initial_schema.sql` for teams that prefer workflows such as `supabase db push`; it creates the same application tables and ensures the default public `inspection-images` Storage bucket exists with the app's 8MB JPG/PNG/WEBP limits.
 
-A Supabase CLI migration is also checked in at `supabase/migrations/20260608000000_initial_schema.sql` for teams that prefer workflows such as `supabase db push`; it creates the same application tables and ensures the default public `inspection-images` Storage bucket exists with the app's 8MB JPG/PNG/WEBP limits.
+6. Deploy the app. The build script runs `prisma generate` before `next build` for local/optional Prisma compatibility.
 
-6. Deploy the app. The build script runs `prisma generate` before `next build`.
-
-Optional Vercel variables are available for custom deployments: `SUPABASE_URL`, `SUPABASE_STORAGE_BUCKET`, `AUTH_SECRET`, `NEXTAUTH_SECRET`, and `NEXT_PUBLIC_APP_URL`.
+Optional Vercel variables are available for custom deployments: `SUPABASE_STORAGE_BUCKET`, `NEXTAUTH_SECRET`, and `NEXT_PUBLIC_APP_URL`.
 
 
 ## Keeping Supabase in sync with GitHub
