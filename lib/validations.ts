@@ -1,0 +1,8 @@
+import { z } from 'zod';
+export const loginSchema=z.object({email:z.string().email(),password:z.string().min(8)});
+export const templateSchema=z.object({name:z.string().min(3),description:z.string().min(5),buildingType:z.string().min(2),category:z.string().min(2)});
+export const itemSchema=z.object({id:z.string().optional(),sectionId:z.string().optional(),title:z.string().min(2),instruction:z.string().default(''),responseType:z.enum(['CHECKBOX','TEXT','SEVERITY','PHOTO','NUMBER','DROPDOWN','MULTI_SELECT','DATE','YES_NO_NA']),isRequired:z.boolean().default(false),requiresPhoto:z.boolean().default(false),requiresSeverity:z.boolean().default(false),allowPhoto:z.boolean().default(true),options:z.array(z.string()).default([]),sortOrder:z.number().int().default(0),isActive:z.boolean().default(true)});
+export const sectionSchema=z.object({id:z.string().optional(),title:z.string().min(2),description:z.string().optional().nullable(),sortOrder:z.number().int(),items:z.array(itemSchema)});
+export const builderSchema=z.object({name:z.string().min(3),description:z.string(),buildingType:z.string(),category:z.string(),isActive:z.boolean(),sections:z.array(sectionSchema)});
+export const inspectionSchema=z.object({templateId:z.string(),clientName:z.string().min(2),propertyName:z.string().min(2),propertyAddress:z.string().min(5),inspectionType:z.string().min(2),scheduledDate:z.string(),referenceNumber:z.string().optional(),notes:z.string().optional()});
+export const responseSchema=z.object({templateItemId:z.string(),value:z.any().optional(),severity:z.enum(['NONE','LOW','MEDIUM','HIGH','CRITICAL']).default('NONE'),description:z.string().optional(),isCompleted:z.boolean().default(false)});
