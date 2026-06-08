@@ -9,7 +9,7 @@ BuildInspect Demo is a mobile-first building inspection management system design
 - Prisma ORM with PostgreSQL
 - Zod validation for incoming form/API payloads
 - Custom secure demo login using bcrypt password hashes and an HTTP-only session cookie
-- Supabase Storage-compatible image upload structure using server-side service-role credentials
+- Supabase Storage-compatible image upload structure with local placeholder fallback when storage is not configured
 
 ## What the app does
 
@@ -22,36 +22,26 @@ BuildInspect Demo is a mobile-first building inspection management system design
 
 ## Environment variables
 
-Copy `.env.example` to `.env` for local development. For the minimal Vercel + Supabase setup, set only these variables:
+Copy `.env.example` to `.env` and fill in the values:
 
 ```bash
-DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="replace-with-your-supabase-anon-key"
-SUPABASE_SERVICE_ROLE_KEY="replace-with-your-supabase-service-role-key"
-```
-
-- `DATABASE_URL` is the only Prisma database variable required. `DIRECT_URL` is not required.
-- `SUPABASE_SERVICE_ROLE_KEY` is server-only and is used for Supabase Storage uploads and as a production auth-secret fallback when `AUTH_SECRET` / `NEXTAUTH_SECRET` are not set. Never expose it to the browser.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` is included for Supabase/Vercel compatibility. It is public by design and is **not** used by server-side image uploads.
-
-Optional overrides:
-
-```bash
-SUPABASE_URL="https://PROJECT_REF.supabase.co"
-SUPABASE_STORAGE_BUCKET="inspection-images"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/buildinspect?schema=public"
+DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/buildinspect?schema=public"
 AUTH_SECRET="replace-with-a-long-random-secret"
-NEXTAUTH_SECRET="replace-with-a-long-random-secret"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+SUPABASE_URL=""
+SUPABASE_SERVICE_ROLE_KEY=""
+SUPABASE_STORAGE_BUCKET="inspection-images"
 ```
 
-`SUPABASE_URL` is optional because the app can derive `https://PROJECT_REF.supabase.co` from common Supabase `DATABASE_URL` formats, including direct hosts like `db.PROJECT_REF.supabase.co` and pooler URLs whose username is `postgres.PROJECT_REF`. The default storage bucket is `inspection-images`; set `SUPABASE_STORAGE_BUCKET` only if you use a different bucket name.
+`DATABASE_URL` and `DIRECT_URL` must never be exposed to the browser. `SUPABASE_SERVICE_ROLE_KEY` is server-only and is used only by the upload route.
 
 ## Local setup
 
 ```bash
 npm install
 cp .env.example .env
-# edit .env with your Supabase PostgreSQL and service-role settings
+# edit .env with PostgreSQL and optional Supabase Storage settings
 npm run db:migrate
 npm run db:seed
 npm run dev
@@ -62,7 +52,7 @@ Open `http://localhost:3000` and sign in with one of the demo users.
 ## Database setup
 
 1. Create a PostgreSQL database locally, in Supabase, Neon, or another managed Postgres provider.
-2. Set `DATABASE_URL` in `.env`.
+2. Set `DATABASE_URL` and `DIRECT_URL` in `.env`.
 3. Run:
 
 ```bash
@@ -90,35 +80,22 @@ The upload route validates images server-side:
 - Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
 - File names are sanitized before storage path generation
 
-Images are uploaded to Supabase Storage with `SUPABASE_SERVICE_ROLE_KEY`; server uploads do not use `NEXT_PUBLIC_SUPABASE_ANON_KEY`. The storage bucket defaults to `inspection-images`, so `SUPABASE_STORAGE_BUCKET` is only needed when you want a different bucket.
-
-The app uses `SUPABASE_URL` when it is set. If it is not set, the app derives the project URL from `DATABASE_URL` for common Supabase direct database URLs (`db.PROJECT_REF.supabase.co`) and pooler URLs where the username is `postgres.PROJECT_REF`. If the URL cannot be determined, uploads return a server-side configuration error explaining that Supabase Storage needs `SUPABASE_URL` or a recognizable Supabase `DATABASE_URL`.
+If `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET` are configured, images are uploaded to Supabase Storage and image metadata is saved in PostgreSQL. If storage is not configured, the demo stores a placeholder public URL while preserving the database structure needed for real uploads.
 
 ## Deployment to Vercel
 
 1. Push the repo to GitHub.
 2. Create a Vercel project from the repo.
-3. Add the minimal Supabase/Vercel environment variables in Vercel Project Settings:
-
-```bash
-DATABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-```
-
-4. Confirm that your Supabase Storage bucket exists. By default, the app uploads to `inspection-images`.
-5. Run the committed database migration during deployment or from a trusted admin machine:
+3. Add all environment variables in Vercel Project Settings.
+4. Provision PostgreSQL and set `DATABASE_URL` / `DIRECT_URL`.
+5. Run Prisma migrations during deployment or from a trusted admin machine:
 
 ```bash
 npx prisma migrate deploy
 npx prisma db seed
 ```
 
-A Supabase CLI migration is also checked in at `supabase/migrations/20260608000000_initial_schema.sql` for teams that prefer workflows such as `supabase db push`; it creates the same application tables and ensures the default public `inspection-images` Storage bucket exists with the app's 8MB JPG/PNG/WEBP limits.
-
 6. Deploy the app. The build script runs `prisma generate` before `next build`.
-
-Optional Vercel variables are available for custom deployments: `SUPABASE_URL`, `SUPABASE_STORAGE_BUCKET`, `AUTH_SECRET`, `NEXTAUTH_SECRET`, and `NEXT_PUBLIC_APP_URL`.
 
 ## Build commands
 
