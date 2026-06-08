@@ -47,6 +47,25 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 `SUPABASE_URL` is optional because the app can derive `https://PROJECT_REF.supabase.co` from common Supabase `DATABASE_URL` formats, including direct hosts like `db.PROJECT_REF.supabase.co` and pooler URLs whose username is `postgres.PROJECT_REF`. The default storage bucket is `inspection-images`; set `SUPABASE_STORAGE_BUCKET` only if you use a different bucket name.
 
+
+## Troubleshooting login database errors
+
+If login fails in Vercel and the function log says Prisma validation failed because `DATABASE_URL` must start with `postgresql://` or `postgres://`, the Vercel `DATABASE_URL` value is not the database connection string. This commonly happens when `DATABASE_URL` is accidentally set to a Supabase project/API URL such as `https://PROJECT_REF.supabase.co` or another non-database value.
+
+Use the Supabase PostgreSQL connection string instead:
+
+```bash
+DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true"
+```
+
+Keep `SUPABASE_URL` separate if you set it explicitly:
+
+```bash
+SUPABASE_URL="https://PROJECT_REF.supabase.co"
+```
+
+After updating Vercel Project Settings, redeploy the app and make sure production migrations and seed data have been applied with `npx prisma migrate deploy` and `npx prisma db seed`.
+
 ## Local setup
 
 ```bash

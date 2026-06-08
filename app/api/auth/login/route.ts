@@ -17,8 +17,17 @@ function errorCode(error: unknown) {
   return typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : undefined;
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : '';
+}
+
 function loginFailureMessage(error: unknown) {
   const code = errorCode(error);
+  const message = errorMessage(error);
+
+  if (message.includes('the URL must start with the protocol `postgresql://` or `postgres://`')) {
+    return 'DATABASE_URL must be a PostgreSQL connection string, not a Supabase project/API URL.';
+  }
 
   if (code === 'P1000' || code === 'P1001' || code === 'P1002') {
     return 'Database connection failed. Check DATABASE_URL in Vercel.';
@@ -28,7 +37,7 @@ function loginFailureMessage(error: unknown) {
     return 'Database tables are not ready. Run the production migrations and seed data.';
   }
 
-  if (error instanceof Error && error.message.includes('Production auth requires')) {
+  if (message.includes('Production auth requires')) {
     return 'Server auth is not configured. Set AUTH_SECRET in Vercel.';
   }
 
