@@ -28,10 +28,12 @@ Copy `.env.example` to `.env` for local development. For the minimal Vercel + Su
 DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="replace-with-your-supabase-anon-key"
 SUPABASE_SERVICE_ROLE_KEY="replace-with-your-supabase-service-role-key"
+AUTH_SECRET="replace-with-a-long-random-secret"
 ```
 
 - `DATABASE_URL` is the only Prisma database variable required. `DIRECT_URL` is not required.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and is used for Supabase Storage uploads and as a production auth-secret fallback when `AUTH_SECRET` / `NEXTAUTH_SECRET` are not set. Never expose it to the browser.
+- `AUTH_SECRET` signs the app's HTTP-only login cookie in production. Generate a long random value for Vercel, for example with `openssl rand -base64 32`.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` is included for Supabase/Vercel compatibility. It is public by design and is **not** used by server-side image uploads.
 
 Optional overrides:
@@ -39,7 +41,6 @@ Optional overrides:
 ```bash
 SUPABASE_URL="https://PROJECT_REF.supabase.co"
 SUPABASE_STORAGE_BUCKET="inspection-images"
-AUTH_SECRET="replace-with-a-long-random-secret"
 NEXTAUTH_SECRET="replace-with-a-long-random-secret"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
@@ -104,6 +105,7 @@ The app uses `SUPABASE_URL` when it is set. If it is not set, the app derives th
 DATABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
+AUTH_SECRET
 ```
 
 4. Confirm that your Supabase Storage bucket exists. By default, the app uploads to `inspection-images`.
