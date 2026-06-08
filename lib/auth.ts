@@ -7,15 +7,10 @@ import { db } from './db';
 const COOKIE = 'buildinspect_session';
 
 const secret = () => {
-  const configuredSecret =
-    process.env.AUTH_SECRET ||
-    process.env.NEXTAUTH_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.DATABASE_URL;
-
+  const configuredSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (configuredSecret) return configuredSecret;
   if (process.env.NODE_ENV !== 'production') return 'development-demo-secret-change-me';
-  throw new Error('Production auth requires AUTH_SECRET, NEXTAUTH_SECRET, SUPABASE_SERVICE_ROLE_KEY, or DATABASE_URL.');
+  throw new Error('Production auth requires AUTH_SECRET, NEXTAUTH_SECRET, or SUPABASE_SERVICE_ROLE_KEY.');
 };
 
 function signature(value: string) {
