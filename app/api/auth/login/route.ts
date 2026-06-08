@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { loginSchema } from '@/lib/validations';
 import { signIn, verifyPassword } from '@/lib/auth';
+import { ensureDemoData } from '@/lib/demo-data';
 
 function redirectTo(req: Request, path: string) {
   return NextResponse.redirect(new URL(path, req.url), { status: 303 });
@@ -25,20 +26,20 @@ function loginFailureMessage(error: unknown) {
   const code = errorCode(error);
   const message = errorMessage(error);
 
-  if (message.includes('the URL must start with the protocol `postgresql://` or `postgres://`')) {
-    return 'DATABASE_URL must be a PostgreSQL connection string, not a Supabase project/API URL.';
-  }
-
   if (code === 'P1000' || code === 'P1001' || code === 'P1002') {
-    return 'Database connection failed. Check DATABASE_URL in Vercel.';
+    return 'Database connection failed. Check your Supabase project connection in Vercel.';
   }
 
   if (code === 'P2021' || code === 'P2022') {
-    return 'Database tables are not ready. Run the production migrations and seed data.';
+    return 'Database tables are not ready. Apply the Supabase migrations for this project.';
   }
 
   if (message.includes('Production auth requires')) {
     return 'Server auth is not configured. Set AUTH_SECRET in Vercel.';
+  }
+
+  if (message.includes('Supabase')) {
+    return 'Supabase connection failed. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.';
   }
 
   return 'Sign in is temporarily unavailable. Check the Vercel function logs.';
@@ -56,6 +57,8 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return redirectToLoginError(req, 'Invalid login');
     }
+
+    await ensureDemoData();
 
     const user = await db.user.findUnique({ where: { email: parsed.data.email } });
 
