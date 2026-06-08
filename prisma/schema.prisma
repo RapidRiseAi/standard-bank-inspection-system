@@ -1,0 +1,16 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") directUrl = env("DIRECT_URL") }
+
+enum Role { ADMIN INSPECTOR }
+enum ResponseType { CHECKBOX TEXT SEVERITY PHOTO NUMBER DROPDOWN MULTI_SELECT DATE YES_NO_NA }
+enum Severity { NONE LOW MEDIUM HIGH CRITICAL }
+enum InspectionStatus { DRAFT IN_PROGRESS COMPLETED }
+
+model User { id String @id @default(cuid()) name String email String @unique passwordHash String role Role @default(INSPECTOR) createdAt DateTime @default(now()) updatedAt DateTime @updatedAt templates Template[] inspections Inspection[] auditLogs AuditLog[] }
+model Template { id String @id @default(cuid()) name String description String buildingType String category String isActive Boolean @default(true) createdById String createdBy User @relation(fields:[createdById], references:[id]) sections TemplateSection[] inspections Inspection[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model TemplateSection { id String @id @default(cuid()) templateId String template Template @relation(fields:[templateId], references:[id], onDelete:Cascade) title String description String? sortOrder Int @default(0) items TemplateItem[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model TemplateItem { id String @id @default(cuid()) sectionId String section TemplateSection @relation(fields:[sectionId], references:[id], onDelete:Cascade) title String instruction String responseType ResponseType isRequired Boolean @default(false) requiresPhoto Boolean @default(false) requiresSeverity Boolean @default(false) allowPhoto Boolean @default(true) optionsJson Json? sortOrder Int @default(0) isActive Boolean @default(true) responses InspectionResponse[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model Inspection { id String @id @default(cuid()) templateId String template Template @relation(fields:[templateId], references:[id]) clientName String propertyName String propertyAddress String inspectionType String inspectorId String inspector User @relation(fields:[inspectorId], references:[id]) scheduledDate DateTime referenceNumber String? notes String? status InspectionStatus @default(DRAFT) completedAt DateTime? responses InspectionResponse[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model InspectionResponse { id String @id @default(cuid()) inspectionId String inspection Inspection @relation(fields:[inspectionId], references:[id], onDelete:Cascade) templateItemId String templateItem TemplateItem @relation(fields:[templateItemId], references:[id]) valueJson Json? severity Severity @default(NONE) description String? isCompleted Boolean @default(false) images InspectionImage[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt @@unique([inspectionId, templateItemId]) }
+model InspectionImage { id String @id @default(cuid()) responseId String response InspectionResponse @relation(fields:[responseId], references:[id], onDelete:Cascade) url String storagePath String fileName String fileType String fileSize Int createdAt DateTime @default(now()) }
+model AuditLog { id String @id @default(cuid()) userId String? user User? @relation(fields:[userId], references:[id]) action String entityType String entityId String metadataJson Json? createdAt DateTime @default(now()) }

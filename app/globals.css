@@ -1,0 +1,2 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+:root{--bg:#f8fafc} body{background:var(--bg);color:#0f172a} .touch{min-height:48px} @media print{.no-print{display:none!important} body{background:white}.print-card{box-shadow:none!important;border:1px solid #d9e2ec;break-inside:avoid}.print-break{break-before:page}}

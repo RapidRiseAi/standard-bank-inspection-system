@@ -1,0 +1,3 @@
+import { NextResponse } from 'next/server';import type { NextRequest } from 'next/server';
+export function middleware(req:NextRequest){const isApp=!req.nextUrl.pathname.startsWith('/login')&&!req.nextUrl.pathname.startsWith('/api/auth')&&!req.nextUrl.pathname.startsWith('/_next')&&!req.nextUrl.pathname.includes('.');const has=req.cookies.has('buildinspect_session');if(isApp&&!has)return NextResponse.redirect(new URL('/login',req.url));if(req.nextUrl.pathname==='/'&&has)return NextResponse.redirect(new URL('/dashboard',req.url));if(req.nextUrl.pathname==='/'&&!has)return NextResponse.redirect(new URL('/login',req.url));return NextResponse.next()}
+export const config={matcher:['/((?!_next/static|_next/image|favicon.ico).*)']}
